@@ -1,7 +1,9 @@
 package persistence
 
+import "os/user"
+
 type Meal struct {
-	Author    User
-	Consumers []User
+	Author    user.User
+	Consumers []user.User
 	KCalories int
 }
