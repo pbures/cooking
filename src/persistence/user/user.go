@@ -68,7 +68,7 @@ func FindAll(amount int, db *sql.DB) ([]User, error) {
 func (u *User) Insert(ctx context.Context, db *sql.DB) error {
 
 	var id int
-	stmt := "INSERT INTO users (firstname, lastname, email) VALUES ($1, $2, $3) RETURNING Id"
+	stmt := "INSERT INTO users (first_name, last_name, email) VALUES ($1, $2, $3) RETURNING user_id"
 	if err := db.QueryRowContext(
 		ctx,
 		stmt,
@@ -83,7 +83,7 @@ func (u *User) Insert(ctx context.Context, db *sql.DB) error {
 }
 
 func (u *User) Delete(ctx context.Context, db *sql.DB) error {
-	const stmt = "DELETE FROM users WHERE Id = $1"
+	const stmt = "DELETE FROM users WHERE user_id = $1"
 
 	res, err := db.ExecContext(ctx, stmt, u.ID)
 	if err != nil {
@@ -96,7 +96,7 @@ func (u *User) Delete(ctx context.Context, db *sql.DB) error {
 }
 
 func (u *User) Update(ctx context.Context, db *sql.DB) error {
-	const stmt = "UPDATE users SET Firstname = $1, Lastname = $2, Email = $3 WHERE Id = $4"
+	const stmt = "UPDATE users SET first_name = $1, last_name = $2, email = $3 WHERE user_id = $4"
 
 	res, err := db.ExecContext(ctx, stmt, u.Firstname, u.Lastname, u.Email, u.ID)
 	if err != nil {

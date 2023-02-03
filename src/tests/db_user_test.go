@@ -17,7 +17,10 @@ func TestUserInsert(t *testing.T) {
 		Email:     "john.doe@neverland.com",
 	}
 
-	user.Insert(context.TODO(), dbConnection)
+	err := user.Insert(context.TODO(), dbConnection)
+	if err != nil {
+		log.Fatal(err)
+	}
 	assert.Equal(1, user.ID)
 }
 
