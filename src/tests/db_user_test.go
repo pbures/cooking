@@ -9,22 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUserInsert(t *testing.T) {
-	assert := assert.New(t)
-	user := &user.User{
-		Firstname: "John",
-		Lastname:  "Doe",
-		Email:     "john.doe@neverland.com",
-	}
-
-	err := user.Insert(context.TODO(), dbConnection)
-	if err != nil {
-		log.Fatal(err)
-	}
-	assert.Equal(1, user.ID)
-}
-
-func TestUserFindByEmail(t *testing.T) {
+func TestUserInsertAndFindByEmail(t *testing.T) {
 	assert := assert.New(t)
 
 	u := &user.User{

@@ -45,13 +45,12 @@ insert into consumers_meals values (2, 1);
 insert into consumers_meals values (2, 2);
 insert into consumers_meals values (2, 4);
 */
-
-/* 
+/*
 Get meals and it's consumers:
 select users.first_name as consumer, meal_name, meal_type from meals 
     join consumers_meals ON meals.meal_id=consumers_meals.meal_id
     join users ON user_id=consumers_meals.consumer_id 
-    ORDER BY consumer;
+    ORDER BY meal_id;
 */
 
 /*

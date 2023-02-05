@@ -1,10 +1,14 @@
 package persistence
 
-import "time"
+import (
+	"time"
+
+	"cooking.buresovi.net/src/persistence/meal"
+)
 
 type Day struct {
 	Date      time.Time
-	Breakfast Meal
-	Lunch     Meal
-	Dinner    Meal
+	Breakfast meal.Meal
+	Lunch     meal.Meal
+	Dinner    meal.Meal
 }
