@@ -1,12 +1,38 @@
 ---
 swagger: "2.0"
 info:
-  description: From the todo list tutorial on goswagger.io
-  title: A Todo list application
+  description: A tracking app on who cooks and who eats that day
+  title: Cook2Share
   version: 1.0.0
 schemes:
 - http
 paths:
+  /meals:
+    get:
+      tags:
+        - meals
+      operationId: getMeals
+      parameters:
+        - name: date
+          in: query
+          type: string
+          format: date
+        - name: limit
+          in: query
+          type: integer
+          minimum: 1
+          maximum: 50
+      responses:
+        200:
+          description: An array of json objects representing the days
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/meal"
+        default:
+          description: Generic error
+          schema:
+            $ref: "#/definitions/error"
   /:
     get:
       tags:
@@ -88,6 +114,16 @@ paths:
           schema:
             $ref: "#/definitions/error"
 definitions:
+  meal:
+    type: object
+    properties:
+      mealId: 
+        type: integer
+        format: int64
+      mealType:
+        type: string
+      mealAuthor: 
+        type: string
   item:
     type: object
     required:
