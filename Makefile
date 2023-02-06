@@ -17,7 +17,7 @@ clean:
 	rm -rf  ./src/server
  
 build: generate
-	go build src/server/cmd/cooking-server/main.go
+	go build src/main.go
 
 run-server: generate build run-postgres
 	./main
