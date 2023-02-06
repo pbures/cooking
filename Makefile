@@ -9,12 +9,12 @@ validate:$(SWAGGGER)
 	swagger validate $(SWAGGGER)
 
 generate:
-	mkdir -p src/server
-	swagger generate server -A Cooking -f $(SWAGGGER) -t src/server --exclude-main
+	mkdir -p src/gen-server
+	swagger generate server -A Cooking -f $(SWAGGGER) -t src/gen-server --exclude-main
 
 clean:
 	rm -f ./main
-	rm -rf  ./src/server
+	rm -rf  ./src/gen-server
  
 build: generate
 	go build src/main.go
