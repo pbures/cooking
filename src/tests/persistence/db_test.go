@@ -39,7 +39,7 @@ func run(m *testing.M) (code int, e error) {
 	dbConnection = dbConf.ConnectDb()
 
 	driver, _ := postgres.WithInstance(dbConnection, &postgres.Config{})
-	mi, err := migrate.NewWithDatabaseInstance("file://../database/migrations", "testing", driver)
+	mi, err := migrate.NewWithDatabaseInstance("file://../../database/migrations", "testing", driver)
 	if err != nil {
 		log.Fatal(err)
 	}
