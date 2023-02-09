@@ -6,12 +6,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-openapi/loads"
-
 	"cooking.buresovi.net/src/gen-server/restapi"
 	"cooking.buresovi.net/src/gen-server/restapi/operations"
 	"cooking.buresovi.net/src/gen-server/restapi/operations/meals"
 	"cooking.buresovi.net/src/handlers"
+	"github.com/go-openapi/loads"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +26,7 @@ func TestGetMeals(t *testing.T) {
 	server := restapi.NewServer(api)
 	defer server.Shutdown()
 
-	api.MealsGetMealsHandler = meals.GetMealsHandlerFunc(handlers.GetMealsHandler)
+	api.MealsGetMealsHandler = meals.GetMealsHandlerFunc(handlers.NewGetMealHandler(application))
 
 	server.ConfigureAPI()
 
@@ -56,5 +55,4 @@ func TestGetMeals(t *testing.T) {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			rr.Body.String(), expected)
 	}
-
 }

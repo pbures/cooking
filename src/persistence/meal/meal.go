@@ -3,42 +3,11 @@ package meal
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"log"
 	"time"
 
 	"cooking.buresovi.net/src/persistence/user"
 )
-
-type MealType int
-
-const (
-	Breakfast MealType = iota
-	Lunch
-	Dinner
-)
-
-var mealTypeMap = map[string]MealType{
-	"breakfast": Breakfast,
-	"lunch":     Lunch,
-	"dinner":    Dinner,
-}
-
-func (mt MealType) String() string {
-	return [...]string{"breakfast", "lunch", "dinner"}[mt]
-}
-
-func StrToMealType(s string) (MealType, error) {
-	if t, found := mealTypeMap[s]; found {
-		return t, nil
-	}
-
-	return 0, fmt.Errorf("Value %v not a valid string representation of MealType", s)
-}
-
-func (mt MealType) EnumIndex() int {
-	return int(mt)
-}
 
 type Meal struct {
 	Id        int
@@ -50,14 +19,33 @@ type Meal struct {
 	KCalories int
 }
 
-func FindMeals(d time.Time, ctx context.Context, db *sql.DB) ([]*Meal, error) {
+type MealSvc interface {
+	FindMeals(d time.Time, ctx context.Context) ([]*Meal, error)
+	Insert(m *Meal, ctx context.Context) error
+	Delete(m *Meal, ctx context.Context)
+	Update(m *Meal, ctx context.Context)
+}
+
+type MealSvcPsql struct {
+	db  *sql.DB
+	usp user.UserSvc
+}
+
+func NewMealSvcPsql(usp user.UserSvc, db *sql.DB) *MealSvcPsql {
+	return &MealSvcPsql{
+		db:  db,
+		usp: usp,
+	}
+}
+
+func (ms *MealSvcPsql) FindMeals(d time.Time, ctx context.Context) ([]*Meal, error) {
 	stmt := "select meals.*, a.first_name, users.* from meals " +
 		"left join consumers_meals ON meals.meal_id=consumers_meals.meal_id " +
 		"left join users ON user_id=consumers_meals.consumer_id " +
 		"inner join (SELECT * from users) a ON a.user_id=meals.author_id " +
 		"WHERE meals.meal_date = $1 ORDER BY meals.meal_id"
 
-	rows, err := db.QueryContext(ctx, stmt, d)
+	rows, err := ms.db.QueryContext(ctx, stmt, d)
 	if err != nil {
 		return nil, err
 	}
@@ -108,9 +96,9 @@ func FindMeals(d time.Time, ctx context.Context, db *sql.DB) ([]*Meal, error) {
 	return meals, nil
 }
 
-func (m *Meal) Insert(ctx context.Context, db *sql.DB) error {
+func (ms *MealSvcPsql) Insert(m *Meal, ctx context.Context) error {
 
-	tx, err := db.BeginTx(ctx, nil)
+	tx, err := ms.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -135,7 +123,7 @@ func (m *Meal) Insert(ctx context.Context, db *sql.DB) error {
 
 	for _, cons := range m.Consumers {
 		if cons.ID == 0 {
-			err := cons.Insert(ctx, db)
+			err := ms.usp.Insert(cons, ctx)
 			if err != nil {
 				return err
 			}
@@ -155,5 +143,5 @@ func (m *Meal) Insert(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
-func (m *Meal) Delete(ctx context.Context, db *sql.DB) {}
-func (m *Meal) Update(ctx context.Context, db *sql.DB) {}
+func (ms *MealSvcPsql) Delete(m *Meal, ctx context.Context) {}
+func (ms *MealSvcPsql) Update(m *Meal, ctx context.Context) {}

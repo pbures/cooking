@@ -14,10 +14,28 @@ type User struct {
 	Email     string
 }
 
-func FindByEmail(email string, db *sql.DB) ([]User, error) {
+type UserSvc interface {
+	FindByEmail(email string) ([]User, error)
+	FindAll(amount int) ([]User, error)
+	Insert(u *User, ctx context.Context) error
+	Delete(u *User, ctx context.Context) error
+	Update(u *User, ctx context.Context) error
+}
+
+type UserSvcPsql struct {
+	db *sql.DB
+}
+
+func NewUserSvcPsql(db *sql.DB) *UserSvcPsql {
+	return &UserSvcPsql{
+		db: db,
+	}
+}
+
+func (usp *UserSvcPsql) FindByEmail(email string) ([]User, error) {
 	stmt := "SELECT * from users WHERE email = '" + email + "'"
 
-	rows, err := db.Query(stmt)
+	rows, err := usp.db.Query(stmt)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -39,11 +57,11 @@ func FindByEmail(email string, db *sql.DB) ([]User, error) {
 	return users, nil
 }
 
-func FindAll(amount int, db *sql.DB) ([]User, error) {
+func (usp *UserSvcPsql) FindAll(amount int) ([]User, error) {
 
 	stmt := "SELECT * from users LIMIT $1;"
 
-	rows, err := db.Query(stmt, amount)
+	rows, err := usp.db.Query(stmt, amount)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -65,11 +83,11 @@ func FindAll(amount int, db *sql.DB) ([]User, error) {
 	return users, nil
 }
 
-func (u *User) Insert(ctx context.Context, db *sql.DB) error {
+func (usp *UserSvcPsql) Insert(u *User, ctx context.Context) error {
 
 	var id int
 	stmt := "INSERT INTO users (first_name, last_name, email) VALUES ($1, $2, $3) RETURNING user_id"
-	if err := db.QueryRowContext(
+	if err := usp.db.QueryRowContext(
 		ctx,
 		stmt,
 		u.Firstname,
@@ -82,10 +100,10 @@ func (u *User) Insert(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
-func (u *User) Delete(ctx context.Context, db *sql.DB) error {
+func (usp *UserSvcPsql) Delete(u *User, ctx context.Context) error {
 	const stmt = "DELETE FROM users WHERE user_id = $1"
 
-	res, err := db.ExecContext(ctx, stmt, u.ID)
+	res, err := usp.db.ExecContext(ctx, stmt, u.ID)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -95,10 +113,10 @@ func (u *User) Delete(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
-func (u *User) Update(ctx context.Context, db *sql.DB) error {
+func (usp *UserSvcPsql) Update(u *User, ctx context.Context) error {
 	const stmt = "UPDATE users SET first_name = $1, last_name = $2, email = $3 WHERE user_id = $4"
 
-	res, err := db.ExecContext(ctx, stmt, u.Firstname, u.Lastname, u.Email, u.ID)
+	res, err := usp.db.ExecContext(ctx, stmt, u.Firstname, u.Lastname, u.Email, u.ID)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -18,9 +18,9 @@ func TestUserInsertAndFindByEmail(t *testing.T) {
 		Email:     "john.doe.test2@neverland.com",
 	}
 
-	u.Insert(context.TODO(), dbConnection)
+	application.UserSvc.Insert(u, context.TODO())
 
-	users, err := user.FindByEmail(u.Email, dbConnection)
+	users, err := application.UserSvc.FindByEmail(u.Email)
 	assert.Nil(err, "Should not return an error")
 	assert.Equal(1, len(users), "It should return exactly one user")
 	assert.Greater(users[0].ID, 0, "Id of the user should be > 0")
@@ -38,12 +38,12 @@ func TestUserDelete(t *testing.T) {
 		Email:     "user.delete@neverland.com",
 	}
 
-	u.Insert(context.TODO(), dbConnection)
-	users, _ := user.FindByEmail(u.Email, dbConnection)
+	application.UserSvc.Insert(u, context.TODO())
+	users, _ := application.UserSvc.FindByEmail(u.Email)
 	assert.Equal(1, len(users))
 
-	u.Delete(context.TODO(), dbConnection)
-	users, err := user.FindByEmail(u.Email, dbConnection)
+	application.UserSvc.Delete(u, context.TODO())
+	users, err := application.UserSvc.FindByEmail(u.Email)
 	assert.Equal(0, len(users))
 	assert.Nil(err)
 }
@@ -57,16 +57,16 @@ func TestUpdate(t *testing.T) {
 		Email:     "john.update@neverland.com",
 	}
 
-	if err := u.Insert(context.TODO(), dbConnection); err != nil {
+	if err := application.UserSvc.Insert(u, context.TODO()); err != nil {
 		log.Fatal(err)
 	}
 
 	u.Lastname = "Update"
-	if err := u.Update(context.TODO(), dbConnection); err != nil {
+	if err := application.UserSvc.Update(u, context.TODO()); err != nil {
 		log.Fatal(err)
 	}
 
-	u2, err := user.FindByEmail("john.update@neverland.com", dbConnection)
+	u2, err := application.UserSvc.FindByEmail("john.update@neverland.com")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -82,12 +82,12 @@ func TestUserFindAll(t *testing.T) {
 		Email:     "john.origin@neverland.com",
 	}
 
-	u.Insert(context.TODO(), dbConnection)
+	application.UserSvc.Insert(u, context.TODO())
 	u2 := u
 	u2.Email = "another.email@neverland.com"
-	u2.Insert(context.TODO(), dbConnection)
+	application.UserSvc.Insert(u2, context.TODO())
 
-	foundUsers, err := user.FindAll(2, dbConnection)
+	foundUsers, err := application.UserSvc.FindAll(2)
 	assert.GreaterOrEqual(2, len(foundUsers))
 	assert.Nil(err)
 }

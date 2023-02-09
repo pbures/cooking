@@ -1,29 +1,36 @@
 package handlers
 
 import (
-	"fmt"
+	"context"
+	"time"
 
+	"cooking.buresovi.net/src/app"
 	"cooking.buresovi.net/src/gen-server/models"
 	"cooking.buresovi.net/src/gen-server/restapi/operations/meals"
 	"github.com/go-openapi/runtime/middleware"
 )
 
-// func NewGetMealHandler() meals.GetMealsHandler {
+func NewGetMealHandler(a app.App) func(params meals.GetMealsParams) middleware.Responder {
+	app := a
 
-// }
+	return func(params meals.GetMealsParams) middleware.Responder {
+		d := params.Date
+		params.Date.Value()
 
-func GetMealsHandler(params meals.GetMealsParams) middleware.Responder {
-	d := params.Date.String()
+		time.Date(2023, 8, 3, 0, 0, 0, 0, time.UTC)
 
-	g := fmt.Sprintf("I greet you on, %s!", d)
+		mmeals, _ := app.MealSvc.FindMeals(time.Time(*d), context.TODO())
 
-	var payload []*models.Meal
+		var payload []*models.Meal
+		for _, mm := range mmeals {
 
-	payload = append(payload, &models.Meal{
-		MealAuthor: g,
-		MealID:     3,
-		MealType:   "breakfast",
-	})
+			payload = append(payload, &models.Meal{
+				MealAuthor: mm.Author.Firstname,
+				MealID:     int64(mm.Id),
+				MealType:   mm.MealName,
+			})
+		}
 
-	return meals.NewGetMealsOK().WithPayload(payload)
+		return meals.NewGetMealsOK().WithPayload(payload)
+	}
 }

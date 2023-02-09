@@ -32,12 +32,11 @@ func TestMealInsertAndFind(t *testing.T) {
 		Email:     "Testing.MealInsert@meals.com",
 	}
 
-	author.Insert(context.TODO(), dbConnection)
-	c1.Insert(context.TODO(), dbConnection)
+	application.UserSvc.Insert(author, context.TODO())
+	application.UserSvc.Insert(c1, context.TODO())
 
 	var cons = []*user.User{c1, c2}
 	dateOfMeal := time.Date(2023, 8, 3, 0, 0, 0, 0, time.UTC)
-	// dateOfMeal := time.Now().UTC()
 
 	m := &meal.Meal{
 		Id:        0,
@@ -48,13 +47,13 @@ func TestMealInsertAndFind(t *testing.T) {
 		MealDate:  dateOfMeal,
 		KCalories: 0,
 	}
-	err := m.Insert(context.TODO(), dbConnection)
+	err := application.MealSvc.Insert(m, context.TODO())
 	if err != nil {
 		fmt.Print(err)
 	}
 	assert.Nil(err)
 
-	meals, err := meal.FindMeals(dateOfMeal, context.TODO(), dbConnection)
+	meals, err := application.MealSvc.FindMeals(dateOfMeal, context.TODO())
 	assert.Nil(err)
 	assert.Len(meals, 1)
 	assert.Equal("Testing Meal Insert", meals[0].MealName)
