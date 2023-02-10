@@ -33,86 +33,20 @@ paths:
           description: Generic error
           schema:
             $ref: "#/definitions/error"
-  /:
-    get:
-      tags:
-        - todos
-      operationId: findTodos
-      parameters:
-        - name: since
-          in: query
-          type: integer
-          format: int64
-        - name: limit
-          in: query
-          type: integer
-          format: int32
-          default: 20
-      responses:
-        200:
-          description: list the todo operations
-          schema:
-            type: array
-            items:
-              $ref: "#/definitions/item"
-        default:
-          description: generic error response
-          schema:
-            $ref: "#/definitions/error"
-    post:
-      tags:
-        - todos
-      operationId: addOne
-      parameters:
-        - name: body
-          in: body
-          schema:
-            $ref: "#/definitions/item"
-      responses:
-        201:
-          description: Created
-          schema:
-            $ref: "#/definitions/item"
-        default:
-          description: error
-          schema:
-            $ref: "#/definitions/error"
-  /{id}:
-    parameters:
-      - type: integer
-        format: int64
-        name: id
-        in: path
-        required: true
     put:
       tags:
-        - todos
-      operationId: updateOne
+        - meals
+      operationId: insertOne
       parameters:
         - name: body
           in: body
-          schema:
-            $ref: "#/definitions/item"
+          required: true  
+          schema: 
+            $ref: "#/definitions/meal"
       responses:
-        200:
-          description: OK
-          schema:
-            $ref: "#/definitions/item"
-        default:
-          description: error
-          schema:
-            $ref: "#/definitions/error"
-    delete:
-      tags:
-        - todos
-      operationId: destroyOne
-      responses:
-        204:
-          description: Deleted
-        default:
-          description: error
-          schema:
-            $ref: "#/definitions/error"
+        201:
+          description: An indication of successful insert.
+          
 definitions:
   meal:
     type: object
@@ -132,19 +66,6 @@ definitions:
       kcalories:
         type: integer
         format: int64
-  item:
-    type: object
-    required:
-      - description
-    properties:
-      id:
-        type: integer
-        format: int64
-      description:
-        type: string
-        minLength: 1
-      completed:
-        type: boolean
   error:
     type: object
     required:

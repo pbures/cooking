@@ -11,6 +11,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestMealInsertWithMeptyAuthor(t *testing.T) {
+	assert := assert.New(t)
+
+	dateOfMeal := time.Date(2023, 8, 5, 0, 0, 0, 0, time.UTC)
+	m := &meal.Meal{
+		Id:       0,
+		MealName: "Testing Meal Insert",
+		MealType: meal.Breakfast,
+		MealDate: dateOfMeal,
+	}
+	err := application.MealSvc.Insert(m, context.TODO())
+	if err != nil {
+		fmt.Print(err)
+	}
+	assert.Nil(err)
+}
+
 func TestMealInsertAndFind(t *testing.T) {
 	assert := assert.New(t)
 

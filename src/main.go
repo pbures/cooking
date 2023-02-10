@@ -5,20 +5,13 @@ package main
 
 import (
 	"log"
-	"os"
-
-	"github.com/go-openapi/loads"
-	flags "github.com/jessevdk/go-flags"
 
 	"cooking.buresovi.net/src/app"
-	"cooking.buresovi.net/src/gen-server/restapi"
-	"cooking.buresovi.net/src/gen-server/restapi/operations"
-	"cooking.buresovi.net/src/gen-server/restapi/operations/meals"
 	"cooking.buresovi.net/src/persistence"
 	"cooking.buresovi.net/src/persistence/meal"
 	"cooking.buresovi.net/src/persistence/user"
+	"cooking.buresovi.net/src/server"
 
-	"cooking.buresovi.net/src/handlers"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -57,37 +50,8 @@ func main() {
 		UserSvc: userSvc,
 	}
 
-	swaggerSpec, err := loads.Embedded(restapi.SwaggerJSON, restapi.FlatSwaggerJSON)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	api := operations.NewCookingAPI(swaggerSpec)
-	server := restapi.NewServer(api)
+	server := server.SetupServer(&app)
 	defer server.Shutdown()
-
-	parser := flags.NewParser(server, flags.Default)
-	parser.ShortDescription = "Cook2Share"
-	parser.LongDescription = "A tracking app on who cooks and who eats that day"
-	server.ConfigureFlags()
-	for _, optsGroup := range api.CommandLineOptionsGroups {
-		_, err := parser.AddGroup(optsGroup.ShortDescription, optsGroup.LongDescription, optsGroup.Options)
-		if err != nil {
-			log.Fatalln(err)
-		}
-	}
-
-	if _, err := parser.Parse(); err != nil {
-		code := 1
-		if fe, ok := err.(*flags.Error); ok {
-			if fe.Type == flags.ErrHelp {
-				code = 0
-			}
-		}
-		os.Exit(code)
-	}
-
-	api.MealsGetMealsHandler = meals.GetMealsHandlerFunc(handlers.NewGetMealHandler(app))
 
 	server.ConfigureAPI()
 

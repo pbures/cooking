@@ -104,18 +104,29 @@ func (ms *MealSvcPsql) Insert(m *Meal, ctx context.Context) error {
 	}
 	defer tx.Rollback()
 
-	stmt := "INSERT INTO meals (author_id, meal_name, meal_type, meal_date)" +
-		" values ($1, $2, $3, $4) RETURNING meal_id"
-
 	var mid int
-	err = tx.QueryRowContext(
-		ctx,
-		stmt,
-		m.Author.ID,
-		m.MealName,
-		m.MealType.String(),
-		m.MealDate,
-	).Scan(&mid)
+	if m.Author != nil && m.Author.ID != 0 {
+		err = tx.QueryRowContext(
+			ctx,
+			"INSERT INTO meals "+
+				"(author_id, meal_name, meal_type, meal_date)"+
+				" values ($1, $2, $3, $4) RETURNING meal_id",
+			m.Author.ID,
+			m.MealName,
+			m.MealType.String(),
+			m.MealDate,
+		).Scan(&mid)
+	} else {
+		err = tx.QueryRowContext(
+			ctx,
+			"INSERT INTO meals "+
+				"(meal_name, meal_type, meal_date)"+
+				" values ($1, $2, $3) RETURNING meal_id",
+			m.MealName,
+			m.MealType.String(),
+			m.MealDate,
+		).Scan(&mid)
+	}
 
 	if err != nil {
 		return err
@@ -128,7 +139,7 @@ func (ms *MealSvcPsql) Insert(m *Meal, ctx context.Context) error {
 				return err
 			}
 		}
-		stmt = "INSERT INTO consumers_meals values ($1, $2)"
+		stmt := "INSERT INTO consumers_meals values ($1, $2)"
 		_, err := tx.ExecContext(ctx, stmt, cons.ID, mid)
 		if err != nil {
 			return err

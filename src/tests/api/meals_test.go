@@ -1,26 +1,23 @@
 package tests
 
 import (
+	"bytes"
 	"context"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	"cooking.buresovi.net/src/app"
-	"cooking.buresovi.net/src/gen-server/restapi"
-	"cooking.buresovi.net/src/gen-server/restapi/operations"
-	"cooking.buresovi.net/src/gen-server/restapi/operations/meals"
-	"cooking.buresovi.net/src/handlers"
 	"cooking.buresovi.net/src/persistence/meal"
 	"cooking.buresovi.net/src/persistence/user"
-	"github.com/go-openapi/loads"
+	"cooking.buresovi.net/src/server"
 	"github.com/stretchr/testify/assert"
 )
 
 type MockMealService struct {
-	findMealsFunc func(d time.Time, ctx context.Context) ([]*meal.Meal, error)
+	findMealsFunc  func(d time.Time, ctx context.Context) ([]*meal.Meal, error)
+	insertMealFunc func(m *meal.Meal, ctx context.Context) error
 }
 
 // type MealSvc interface {
@@ -35,24 +32,12 @@ func (ms MockMealService) FindMeals(d time.Time, ctx context.Context) ([]*meal.M
 	return ms.findMealsFunc(d, ctx)
 }
 
-func (ms MockMealService) Insert(m *meal.Meal, ctx context.Context) error { return nil }
+func (ms MockMealService) Insert(m *meal.Meal, ctx context.Context) error {
+	return ms.insertMealFunc(m, ctx)
+}
+
 func (ms MockMealService) Delete(m *meal.Meal, ctx context.Context) error { return nil }
 func (ms MockMealService) Update(m *meal.Meal, ctx context.Context) error { return nil }
-
-func setupServer(mockApp *app.App) *restapi.Server {
-	swaggerSpec, err := loads.Embedded(restapi.SwaggerJSON, restapi.FlatSwaggerJSON)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	api := operations.NewCookingAPI(swaggerSpec)
-	server := restapi.NewServer(api)
-
-	api.MealsGetMealsHandler = meals.GetMealsHandlerFunc(handlers.NewGetMealHandler(*mockApp))
-
-	server.ConfigureAPI()
-	return server
-}
 
 func TestGetMeals(t *testing.T) {
 	assert := assert.New(t)
@@ -95,7 +80,7 @@ func TestGetMeals(t *testing.T) {
 		MealSvc: mockMealSvc,
 	}
 
-	server := setupServer(&mockApp)
+	server := server.SetupServer(&mockApp)
 	defer server.Shutdown()
 	handler := server.GetHandler()
 
@@ -116,4 +101,39 @@ func TestGetMeals(t *testing.T) {
 		rr.Body.String(),
 		"Response Body",
 	)
+}
+
+func TestInsertMeal(t *testing.T) {
+	assert := assert.New(t)
+	mockMealSvc := MockMealService{
+		insertMealFunc: func(m *meal.Meal, ctx context.Context) error {
+			m.Id = 5
+			return nil
+		},
+	}
+	mockApp := app.App{
+		MealSvc: mockMealSvc,
+		UserSvc: nil,
+	}
+	server := server.SetupServer(&mockApp)
+	defer server.Shutdown()
+
+	handler := server.GetHandler()
+	reqJson := `{
+		"mealId":5,
+		"mealType":"breakfast",
+		"mealAuthor":"The author",
+		"mealDate":"2023-01-25",
+		"mealName":"gulasovka",
+		"kcalories":280
+	}`
+	var jsonStr = []byte(reqJson)
+	req, _ := http.NewRequest("PUT", "/meals", bytes.NewBuffer(jsonStr))
+	req.Header.Set("X-Custom-Header", "myvalue")
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(http.StatusCreated, rr.Result().StatusCode, "Status code")
 }
