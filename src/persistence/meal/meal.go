@@ -11,19 +11,19 @@ import (
 
 type Meal struct {
 	Id        int
+	MealType  MealType
 	Author    *user.User
+	MealDate  time.Time
 	Consumers []*user.User
 	MealName  string
-	MealType  MealType
-	MealDate  time.Time
 	KCalories int
 }
 
 type MealSvc interface {
 	FindMeals(d time.Time, ctx context.Context) ([]*Meal, error)
 	Insert(m *Meal, ctx context.Context) error
-	Delete(m *Meal, ctx context.Context)
-	Update(m *Meal, ctx context.Context)
+	Delete(m *Meal, ctx context.Context) error
+	Update(m *Meal, ctx context.Context) error
 }
 
 type MealSvcPsql struct {
@@ -143,5 +143,5 @@ func (ms *MealSvcPsql) Insert(m *Meal, ctx context.Context) error {
 	return nil
 }
 
-func (ms *MealSvcPsql) Delete(m *Meal, ctx context.Context) {}
-func (ms *MealSvcPsql) Update(m *Meal, ctx context.Context) {}
+func (ms *MealSvcPsql) Delete(m *Meal, ctx context.Context) error { return nil }
+func (ms *MealSvcPsql) Update(m *Meal, ctx context.Context) error { return nil }

@@ -124,6 +124,14 @@ definitions:
         type: string
       mealAuthor: 
         type: string
+      mealDate:
+        type: string
+        format: date
+      mealName:
+        type: string
+      kcalories:
+        type: integer
+        format: int64
   item:
     type: object
     required:
