@@ -25,7 +25,7 @@ func StrToMealType(s string) (MealType, error) {
 		return t, nil
 	}
 
-	return 0, fmt.Errorf("Value %v not a valid string representation of MealType", s)
+	return 0, fmt.Errorf("value %v not a valid string representation of MealType", s)
 }
 
 func (mt MealType) EnumIndex() int {

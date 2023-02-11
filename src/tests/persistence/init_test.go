@@ -30,15 +30,15 @@ func TestMain(m *testing.M) {
 
 func run(m *testing.M) (code int, e error) {
 
-	createDB("testing")
-
 	dbConf := &persistence.Database{
 		Username: "postgres",
 		Hostname: "localhost",
 		Port:     5432,
 		Password: "welcome1",
-		Database: "testing",
 	}
+
+	persistence.CreateDB(*dbConf, "testing")
+	dbConf.Database = "testing"
 
 	dbConnection = dbConf.ConnectDb()
 
@@ -51,7 +51,7 @@ func run(m *testing.M) (code int, e error) {
 	mi.Up()
 
 	defer func() {
-		mi.Down()
+		// mi.Down()
 		dbConnection.Close()
 	}()
 
@@ -64,24 +64,4 @@ func run(m *testing.M) (code int, e error) {
 	}
 
 	return m.Run(), nil
-}
-
-func createDB(dbName string) {
-
-	d := &persistence.Database{
-		Username: "postgres",
-		Hostname: "localhost",
-		Port:     5432,
-		Password: "welcome1",
-	}
-
-	db := d.ConnectDb()
-	defer db.Close()
-
-	db.Exec("DROP DATABASE testing")
-	smtm := "CREATE DATABASE " + dbName
-	_, err := db.Exec(smtm)
-	if err != nil {
-		log.Fatal(err)
-	}
 }

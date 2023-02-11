@@ -56,7 +56,7 @@ func TestMealsInsertAndFindMany(t *testing.T) {
 				Id:        100,
 				MealType:  meal.Dinner,
 				Author:    &user.User{},
-				MealDate:  time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC),
+				MealDate:  time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC),
 				Consumers: []*user.User{},
 				MealName:  "Full Meal with meal id equal to 100",
 				KCalories: 0,
@@ -75,6 +75,8 @@ func TestMealsInsertAndFindMany(t *testing.T) {
 
 				ms, err := application.MealSvc.FindMeals(tt.data.MealDate, context.TODO())
 				assert.Nil(err)
+				assert.Len(ms, 1, "should return exactly one element.")
+				assert.True(ms[0].Equals(&tt.data))
 
 				assert.GreaterOrEqual(len(ms), 1)
 
@@ -129,9 +131,7 @@ func TestMealInsertAndFind(t *testing.T) {
 	meals, err := application.MealSvc.FindMeals(dateOfMeal, context.TODO())
 	assert.Nil(err)
 	assert.Len(meals, 1)
-	assert.Equal("Testing Meal Insert", meals[0].MealName)
+	assert.True(meals[0].Equals(m))
 	assert.Equal(author.Firstname, meals[0].Author.Firstname)
-	assert.Equal(meal.Dinner, meals[0].MealType)
-	assert.Equal(dateOfMeal, meals[0].MealDate)
 	assert.Equal(2, len(meals[0].Consumers))
 }

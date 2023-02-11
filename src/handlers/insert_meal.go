@@ -20,15 +20,19 @@ func NewInsertOneHandler(a app.App) func(params meals.InsertOneParams) middlewar
 		if err != nil {
 			errMsg := "Unable to parse payload"
 
-			return meals.NewInsertOneDefault(502).WithPayload(&models.Error{
-				Code:    502,
+			return meals.NewInsertOneDefault(400).WithPayload(&models.Error{
+				Code:    400,
 				Message: &errMsg,
 			})
 		}
 
 		err = app.MealSvc.Insert(m, context.TODO())
 		if err != nil {
-			return meals.NewInsertOneDefault(502)
+			errMsg := err.Error()
+			return meals.NewInsertOneDefault(400).WithPayload(&models.Error{
+				Code:    400,
+				Message: &errMsg,
+			})
 		}
 
 		return meals.NewInsertOneCreated()

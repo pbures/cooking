@@ -40,3 +40,16 @@ func (d *Database) ConnectDb() *sql.DB {
 
 	return db
 }
+
+func CreateDB(dbConf Database, newDbName string) {
+
+	db := dbConf.ConnectDb()
+	defer db.Close()
+
+	db.Exec(fmt.Sprintf("DROP DATABASE %v", newDbName))
+	smtm := "CREATE DATABASE " + newDbName
+	_, err := db.Exec(smtm)
+	if err != nil {
+		log.Fatal(err)
+	}
+}

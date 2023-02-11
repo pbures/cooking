@@ -22,6 +22,11 @@ paths:
           type: integer
           minimum: 1
           maximum: 50
+        - name: daysforward
+          in: query
+          type: integer
+          minimum: 0
+          maximum: 365
       responses:
         200:
           description: An array of json objects representing the days
@@ -60,8 +65,9 @@ definitions:
         format: int64
       mealType:
         type: string
-      mealAuthor: 
-        type: string
+      mealAuthorId: 
+        type: integer
+        format: int64
       mealDate:
         type: string
         format: date
@@ -70,6 +76,25 @@ definitions:
       kcalories:
         type: integer
         format: int64
+      consumerIds:
+        type: array
+        items:
+          type: integer
+          format: int64
+  user:
+    type: object
+    properties:
+      userId:
+        type: integer
+        format: int64
+      firstName:
+        type: string
+      lastName:
+        type: string
+      email:
+        type: string
+        format: email
+      
   error:
     type: object
     required:

@@ -2,137 +2,80 @@ package tests
 
 import (
 	"bytes"
-	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
-	"cooking.buresovi.net/src/app"
-	"cooking.buresovi.net/src/persistence/meal"
-	"cooking.buresovi.net/src/persistence/user"
 	"cooking.buresovi.net/src/server"
 	"github.com/stretchr/testify/assert"
 )
 
-type MockMealService struct {
-	findMealsFunc  func(d time.Time, ctx context.Context) ([]*meal.Meal, error)
-	insertMealFunc func(m *meal.Meal, ctx context.Context) error
-}
-
-// type MealSvc interface {
-
-// FindMeals(d time.Time, ctx context.Context) ([]*Meal, error)
-// Insert(m *Meal, ctx context.Context) error
-// Delete(m *Meal, ctx context.Context) error
-// Update(m *Meal, ctx context.Context) error
-// }
-
-func (ms MockMealService) FindMeals(d time.Time, ctx context.Context) ([]*meal.Meal, error) {
-	return ms.findMealsFunc(d, ctx)
-}
-
-func (ms MockMealService) Insert(m *meal.Meal, ctx context.Context) error {
-	return ms.insertMealFunc(m, ctx)
-}
-
-func (ms MockMealService) Delete(m *meal.Meal, ctx context.Context) error { return nil }
-func (ms MockMealService) Update(m *meal.Meal, ctx context.Context) error { return nil }
-
-func TestGetMeals(t *testing.T) {
+func TestInsertMeal(t *testing.T) {
 	assert := assert.New(t)
 
-	mockMealSvc := MockMealService{
-		findMealsFunc: func(d time.Time, ctx context.Context) ([]*meal.Meal, error) {
-			au := &user.User{
-				ID:        1,
-				Firstname: "t",
-				Lastname:  "u",
-				Email:     "t.u@nowhere.com",
-			}
-
-			res := []*meal.Meal{
-				{
-					Id:        1,
-					Author:    au,
-					Consumers: []*user.User{},
-					MealName:  "",
-					MealType:  meal.Lunch,
-					MealDate:  d,
-					KCalories: 350,
-				},
-				{
-					Id:        2,
-					Author:    au,
-					Consumers: []*user.User{},
-					MealName:  "",
-					MealType:  meal.Dinner,
-					MealDate:  d,
-					KCalories: 250,
-				},
-			}
-			return res, nil
-		},
-	}
-
-	mockApp := app.App{
-		UserSvc: nil,
-		MealSvc: mockMealSvc,
-	}
-
-	server := server.SetupServer(&mockApp)
+	server := server.SetupServer(&application)
 	defer server.Shutdown()
-	handler := server.GetHandler()
 
-	req, err := http.NewRequest("GET", "/meals?date=2023-08-01", nil)
-	if err != nil {
-		t.Fatal(err)
+	handler := server.GetHandler()
+	rr := httptest.NewRecorder()
+	d := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	for i := 0; i < 100; i++ {
+
+		reqJson := fmt.Sprintf(`{
+			"mealId":5,
+			"mealType":"dinner",
+			"mealAuthorId":1,
+			"mealDate":"%v",
+			"mealName":"testing-gulasovka-%v",
+			"kcalories":280
+		}`, d.AddDate(0, 0, i).Format("2006-01-02"), i)
+
+		var jsonStr = []byte(reqJson)
+
+		req, _ := http.NewRequest("PUT", "/meals", bytes.NewBuffer(jsonStr))
+		req.Header.Set("Content-Type", "application/json")
+		handler.ServeHTTP(rr, req)
+
+		//TODO: Need to setup some Author into users table.
+		if !assert.Equal(http.StatusCreated, rr.Result().StatusCode, "Status code") {
+			t.Fatal("status codes should be 201")
+		}
 	}
 
-	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/meals?date=%v", d.Format("2006-01-02")), nil)
 	handler.ServeHTTP(rr, req)
+	assert.Equal(1,
+		strings.Count(rr.Body.String(), "testing-gulasovka"),
+		"body of the response needs to contain exactly one element",
+	)
 
-	assert.Equal(http.StatusOK, rr.Result().StatusCode, "Status code")
-	assert.JSONEq(
-		"["+
-			"{\"mealAuthor\":\"t\", \"mealDate\":\"2023-08-01\", \"mealId\":1, \"mealType\":\"lunch\",  \"kcalories\": 350},"+
-			"{\"mealAuthor\":\"t\", \"mealDate\":\"2023-08-01\", \"mealId\":2, \"mealType\":\"dinner\", \"kcalories\": 250}"+
-			"]\n",
-		rr.Body.String(),
-		"Response Body",
+	rr = httptest.NewRecorder()
+	req, _ = http.NewRequest("GET", fmt.Sprintf("/meals?date=%v&daysforward=10", d.Format("2006-01-02")), nil)
+	handler.ServeHTTP(rr, req)
+	assert.Equal(11,
+		strings.Count(rr.Body.String(), "testing-gulasovka"),
+		"body of the response needs to contain exactly one element",
+	)
+
+	rr = httptest.NewRecorder()
+	req, _ = http.NewRequest("GET", fmt.Sprintf("/meals?date=%v&daysforward=150&limit=10", d.Format("2006-01-02")), nil)
+	handler.ServeHTTP(rr, req)
+	assert.Equal(10,
+		strings.Count(rr.Body.String(), "testing-gulasovka"),
+		"body of the response needs to contain exactly one element",
 	)
 }
 
-func TestInsertMeal(t *testing.T) {
-	assert := assert.New(t)
-	mockMealSvc := MockMealService{
-		insertMealFunc: func(m *meal.Meal, ctx context.Context) error {
-			m.Id = 5
-			return nil
-		},
-	}
-	mockApp := app.App{
-		MealSvc: mockMealSvc,
-		UserSvc: nil,
-	}
-	server := server.SetupServer(&mockApp)
+func TestInsetAndFindRestApi(t *testing.T) {
+	// assert := assert.New(t)
+
+	server := server.SetupServer(&application)
 	defer server.Shutdown()
 
-	handler := server.GetHandler()
-	reqJson := `{
-		"mealId":5,
-		"mealType":"breakfast",
-		"mealAuthor":"The author",
-		"mealDate":"2023-01-25",
-		"mealName":"gulasovka",
-		"kcalories":280
-	}`
-	var jsonStr = []byte(reqJson)
-	req, _ := http.NewRequest("PUT", "/meals", bytes.NewBuffer(jsonStr))
-	req.Header.Set("Content-Type", "application/json")
+	// handler := server.GetHandler()
 
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-
-	assert.Equal(http.StatusCreated, rr.Result().StatusCode, "Status code")
 }
