@@ -3,10 +3,13 @@ package meal
 import (
 	"context"
 	"database/sql"
-	"log"
+	"fmt"
 	"time"
 
+	"cooking.buresovi.net/src/gen-server/models"
 	"cooking.buresovi.net/src/persistence/user"
+
+	_ "github.com/jackc/pgx"
 )
 
 type Meal struct {
@@ -17,6 +20,24 @@ type Meal struct {
 	Consumers []*user.User
 	MealName  string
 	KCalories int
+}
+
+func NewMeal(mm *models.Meal) (*Meal, error) {
+
+	mts, err := StrToMealType(mm.MealType)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Meal{
+		Id:        int(mm.MealID),
+		MealType:  mts,
+		Author:    &user.User{}, //TODO: Fixme! User needs to be transformed.
+		MealDate:  time.Time(mm.MealDate),
+		Consumers: []*user.User{},
+		MealName:  mm.MealName,
+		KCalories: int(mm.Kcalories),
+	}, nil
 }
 
 type MealSvc interface {
@@ -42,7 +63,7 @@ func (ms *MealSvcPsql) FindMeals(d time.Time, ctx context.Context) ([]*Meal, err
 	stmt := "select meals.*, a.first_name, users.* from meals " +
 		"left join consumers_meals ON meals.meal_id=consumers_meals.meal_id " +
 		"left join users ON user_id=consumers_meals.consumer_id " +
-		"inner join (SELECT * from users) a ON a.user_id=meals.author_id " +
+		"left join (SELECT * from users) a ON a.user_id=meals.author_id " +
 		"WHERE meals.meal_date = $1 ORDER BY meals.meal_id"
 
 	rows, err := ms.db.QueryContext(ctx, stmt, d)
@@ -50,8 +71,9 @@ func (ms *MealSvcPsql) FindMeals(d time.Time, ctx context.Context) ([]*Meal, err
 		return nil, err
 	}
 
-	var mealId, authorId, consumerId int
-	var mealName, mealTypeStr, authorFirstName, consumerFirstname, consuerLastnamme, consumerEmail string
+	var mealId int
+	var authorIdNullable, consumerIdNullable sql.NullInt64
+	var mealName, authorFirstName, mtStr, consumerFirstname, consuerLastnamme, consumerEmail sql.NullString
 	var mealDate time.Time
 
 	var prevMealId int = -1
@@ -60,37 +82,40 @@ func (ms *MealSvcPsql) FindMeals(d time.Time, ctx context.Context) ([]*Meal, err
 	var m *Meal
 
 	for rows.Next() {
-		rows.Scan(&mealId, &authorId, &mealName, &mealTypeStr, &mealDate, &authorFirstName,
-			&consumerId, &consumerFirstname, &consuerLastnamme, &consumerEmail)
+		rows.Scan(&mealId, &authorIdNullable, &mealName, &mtStr, &mealDate, &authorFirstName,
+			&consumerIdNullable, &consumerFirstname, &consuerLastnamme, &consumerEmail)
+
+		mt, err := StrToMealType(mtStr.String)
+		if err != nil {
+			return nil, fmt.Errorf("can not parse enum type from string: %v", mtStr)
+		}
 
 		if prevMealId != mealId {
 			prevMealId = mealId
 			var cons []*user.User
-			mt, err := StrToMealType(mealTypeStr)
-			if err != nil {
-				log.Fatalf("Unknown mealtype: %v", mealTypeStr)
-			}
 
 			m = &Meal{
 				Id:       mealId,
-				MealName: mealName,
+				MealName: mealName.String,
 				MealType: mt,
 				Author: &user.User{
-					ID:        authorId,
-					Firstname: authorFirstName,
+					ID:        int(authorIdNullable.Int64),
+					Firstname: authorFirstName.String,
 				},
 				Consumers: cons,
 				MealDate:  mealDate.UTC(),
 			}
 			meals = append(meals, m)
 		}
-		m.Consumers = append(m.Consumers,
-			&user.User{
-				ID:        consumerId,
-				Firstname: consumerFirstname,
-				Lastname:  consuerLastnamme,
-				Email:     consumerEmail,
-			})
+		if consumerIdNullable.Valid {
+			m.Consumers = append(m.Consumers,
+				&user.User{
+					ID:        int(consumerIdNullable.Int64),
+					Firstname: consumerFirstname.String,
+					Lastname:  consuerLastnamme.String,
+					Email:     consumerEmail.String,
+				})
+		}
 	}
 
 	return meals, nil

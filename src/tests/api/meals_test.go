@@ -129,7 +129,6 @@ func TestInsertMeal(t *testing.T) {
 	}`
 	var jsonStr = []byte(reqJson)
 	req, _ := http.NewRequest("PUT", "/meals", bytes.NewBuffer(jsonStr))
-	req.Header.Set("X-Custom-Header", "myvalue")
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()

@@ -2,13 +2,11 @@ package handlers
 
 import (
 	"context"
-	"log"
-	"time"
 
 	"cooking.buresovi.net/src/app"
+	"cooking.buresovi.net/src/gen-server/models"
 	"cooking.buresovi.net/src/gen-server/restapi/operations/meals"
 	"cooking.buresovi.net/src/persistence/meal"
-	"cooking.buresovi.net/src/persistence/user"
 	"github.com/go-openapi/runtime/middleware"
 )
 
@@ -18,21 +16,20 @@ func NewInsertOneHandler(a app.App) func(params meals.InsertOneParams) middlewar
 	return func(params meals.InsertOneParams) middleware.Responder {
 
 		mr := params.Body
-		mealType, err := meal.StrToMealType(mr.MealType)
+		m, err := meal.NewMeal(mr)
 		if err != nil {
-			log.Fatal("Failed to parse meal type")
-		}
-		m := &meal.Meal{
-			Id:        int(mr.MealID),
-			MealType:  mealType,
-			Author:    &user.User{},
-			MealDate:  time.Time(mr.MealDate),
-			Consumers: []*user.User{},
-			MealName:  mr.MealName,
-			KCalories: int(mr.Kcalories),
+			errMsg := "Unable to parse payload"
+
+			return meals.NewInsertOneDefault(502).WithPayload(&models.Error{
+				Code:    502,
+				Message: &errMsg,
+			})
 		}
 
-		app.MealSvc.Insert(m, context.TODO())
+		err = app.MealSvc.Insert(m, context.TODO())
+		if err != nil {
+			return meals.NewInsertOneDefault(502)
+		}
 
 		return meals.NewInsertOneCreated()
 	}
