@@ -4,9 +4,11 @@ CREATE TABLE users (
     last_name varchar(255) NOT NULL,
     email varchar(255) NOT NULL
 );
+
+insert into users (first_name, last_name, email) values ('Pavel', 'Bureš', 'pavel.bures@gmail.com');
+insert into users (first_name, last_name, email) values ('Jana', 'Burešová', 'janik100@gmail.com');
+
 /*
-insert into users (first_name, last_name, email) values ('A', 'a', 'aaa');
-insert into users (first_name, last_name, email) values ('B', 'b', 'bbb');
 insert into users (first_name, last_name, email) values ('C', 'c', 'ccc');
 */
 
