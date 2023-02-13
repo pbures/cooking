@@ -29,7 +29,8 @@ func NewGetMealHandler(a app.App) func(params meals.GetMealsParams) middleware.R
 			fwd = int(*params.Daysforward)
 		}
 
-		var payload []*models.Meal
+		var res_meals []*models.Meal
+
 		for i := 0; i <= fwd; i++ {
 			mmeals, _ := app.MealSvc.FindMeals(time.Time(*d).AddDate(0, 0, i), context.TODO())
 
@@ -40,7 +41,7 @@ func NewGetMealHandler(a app.App) func(params meals.GetMealsParams) middleware.R
 					cids = append(cids, int64(mmc.ID))
 				}
 
-				payload = append(payload, &models.Meal{
+				res_meals = append(res_meals, &models.Meal{
 					MealID:       int64(mm.Id),
 					MealType:     mm.MealType.String(),
 					MealAuthorID: int64(mm.Author.ID),
@@ -51,11 +52,17 @@ func NewGetMealHandler(a app.App) func(params meals.GetMealsParams) middleware.R
 				)
 				added = added + 1
 				if added >= limit {
-					return meals.NewGetMealsOK().WithPayload(payload)
+					return meals.NewGetMealsOK().WithPayload(&meals.GetMealsOKBody{
+						Meals: res_meals,
+						Users: nil,
+					})
 				}
 			}
 		}
 
-		return meals.NewGetMealsOK().WithPayload(payload)
+		return meals.NewGetMealsOK().WithPayload(&meals.GetMealsOKBody{
+			Meals: res_meals,
+			Users: nil,
+		})
 	}
 }

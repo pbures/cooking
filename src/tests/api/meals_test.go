@@ -64,6 +64,7 @@ func TestInsertMeal(t *testing.T) {
 	rr = httptest.NewRecorder()
 	req, _ = http.NewRequest("GET", fmt.Sprintf("/meals?date=%v&daysforward=150&limit=10", d.Format("2006-01-02")), nil)
 	handler.ServeHTTP(rr, req)
+	//TODO: Fix the handler, now it returns nothing.
 	assert.Equal(10,
 		strings.Count(rr.Body.String(), "testing-gulasovka"),
 		"body of the response needs to contain exactly one element",

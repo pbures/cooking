@@ -31,9 +31,16 @@ paths:
         200:
           description: An array of json objects representing the days
           schema:
-            type: array
-            items:
-              $ref: "#/definitions/meal"
+            type: object
+            properties:
+              meals:
+                type: array
+                items:
+                  $ref: "#/definitions/meal"
+              users:
+                type: array
+                items:
+                  $ref: "#/definitions/user"
         default:
           description: Generic error
           schema:
