@@ -28,11 +28,12 @@ func TestInsertMeal(t *testing.T) {
 		reqJson := fmt.Sprintf(`{
 			"mealId":5,
 			"mealType":"dinner",
-			"mealAuthorId":1,
+			"mealAuthorId":%v,
 			"mealDate":"%v",
 			"mealName":"testing-gulasovka-%v",
-			"kcalories":280
-		}`, d.AddDate(0, 0, i).Format("2006-01-02"), i)
+			"kcalories":280,
+			"consumerIds": [2,3,4]
+		}`, (i%2)+1, d.AddDate(0, 0, i).Format("2006-01-02"), i)
 
 		var jsonStr = []byte(reqJson)
 
@@ -52,6 +53,12 @@ func TestInsertMeal(t *testing.T) {
 		strings.Count(rr.Body.String(), "testing-gulasovka"),
 		"body of the response needs to contain exactly one element",
 	)
+	//TODO: The consumers are not written to the consmers_meals table.
+	//TODO: Write test for a single simple insert.
+	assert.Equal(3,
+		strings.Count(rr.Body.String(), "\"userId\""),
+		"response needs to contain exactly three users",
+	)
 
 	rr = httptest.NewRecorder()
 	req, _ = http.NewRequest("GET", fmt.Sprintf("/meals?date=%v&daysforward=10", d.Format("2006-01-02")), nil)
@@ -60,14 +67,21 @@ func TestInsertMeal(t *testing.T) {
 		strings.Count(rr.Body.String(), "testing-gulasovka"),
 		"body of the response needs to contain exactly one element",
 	)
+	assert.Equal(3,
+		strings.Count(rr.Body.String(), "\"userId\""),
+		"response needs to contain exactly three users",
+	)
 
 	rr = httptest.NewRecorder()
 	req, _ = http.NewRequest("GET", fmt.Sprintf("/meals?date=%v&daysforward=150&limit=10", d.Format("2006-01-02")), nil)
 	handler.ServeHTTP(rr, req)
-	//TODO: Fix the handler, now it returns nothing.
 	assert.Equal(10,
 		strings.Count(rr.Body.String(), "testing-gulasovka"),
 		"body of the response needs to contain exactly one element",
+	)
+	assert.Equal(3,
+		strings.Count(rr.Body.String(), "\"userId\""),
+		"response needs to contain exactly three users",
 	)
 }
 

@@ -7,6 +7,7 @@ import (
 	"cooking.buresovi.net/src/app"
 	"cooking.buresovi.net/src/gen-server/models"
 	"cooking.buresovi.net/src/gen-server/restapi/operations/meals"
+	"cooking.buresovi.net/src/persistence/user"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 )
@@ -31,14 +32,18 @@ func NewGetMealHandler(a app.App) func(params meals.GetMealsParams) middleware.R
 
 		var res_meals []*models.Meal
 
+		users := make(map[int]*user.User)
+
 		for i := 0; i <= fwd; i++ {
 			mmeals, _ := app.MealSvc.FindMeals(time.Time(*d).AddDate(0, 0, i), context.TODO())
 
 			for _, mm := range mmeals {
 				cids := []int64{}
+				users = addUser(users, mm.Author)
 
 				for _, mmc := range mm.Consumers {
 					cids = append(cids, int64(mmc.ID))
+					users = addUser(users, mmc)
 				}
 
 				res_meals = append(res_meals, &models.Meal{
@@ -50,19 +55,44 @@ func NewGetMealHandler(a app.App) func(params meals.GetMealsParams) middleware.R
 					Kcalories:    int64(mm.KCalories),
 					ConsumerIds:  cids},
 				)
+
 				added = added + 1
 				if added >= limit {
-					return meals.NewGetMealsOK().WithPayload(&meals.GetMealsOKBody{
-						Meals: res_meals,
-						Users: nil,
-					})
+					return prepareResponse(res_meals, users)
 				}
 			}
 		}
 
-		return meals.NewGetMealsOK().WithPayload(&meals.GetMealsOKBody{
-			Meals: res_meals,
-			Users: nil,
+		return prepareResponse(res_meals, users)
+	}
+}
+
+func prepareResponse(rm []*models.Meal, ru map[int]*user.User) *meals.GetMealsOK {
+	var res_users []*models.User
+
+	for _, usr := range ru {
+		res_users = append(res_users, &models.User{
+			Email:     strfmt.Email(usr.Email),
+			FirstName: usr.Firstname,
+			LastName:  usr.Lastname,
+			UserID:    int64(usr.ID),
 		})
 	}
+
+	return meals.NewGetMealsOK().WithPayload(&meals.GetMealsOKBody{
+		Meals: rm,
+		Users: res_users,
+	})
+}
+
+func addUser(users map[int]*user.User, u *user.User) map[int]*user.User {
+	if u == nil {
+		return users
+	}
+
+	if _, ok := users[u.ID]; !ok {
+		users[u.ID] = u
+	}
+
+	return users
 }

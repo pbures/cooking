@@ -7,6 +7,8 @@ CREATE TABLE users (
 
 insert into users (first_name, last_name, email) values ('Pavel', 'Bureš', 'pavel.bures@gmail.com');
 insert into users (first_name, last_name, email) values ('Jana', 'Burešová', 'janik100@gmail.com');
+insert into users (first_name, last_name, email) values ('Adam', 'Bureš', 'adam.bures.prg@gmail.com');
+insert into users (first_name, last_name, email) values ('Karel', 'Bureš', 'karel.bures.prg@gmail.com');
 
 /*
 insert into users (first_name, last_name, email) values ('C', 'c', 'ccc');
