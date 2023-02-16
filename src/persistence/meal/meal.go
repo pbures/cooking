@@ -26,7 +26,7 @@ func NewMeal(mm *models.Meal) (*Meal, error) {
 		return nil, err
 	}
 
-	return &Meal{
+	res := &Meal{
 		Id:        int(mm.MealID),
 		MealType:  mts,
 		Author:    &user.User{ID: int(mm.MealAuthorID)}, //TODO: Fixme! User needs to be transformed.
@@ -34,7 +34,16 @@ func NewMeal(mm *models.Meal) (*Meal, error) {
 		Consumers: []*user.User{},
 		MealName:  mm.MealName,
 		KCalories: int(mm.Kcalories),
-	}, nil
+	}
+	if mm.ConsumerIds != nil && len(mm.ConsumerIds) > 0 {
+		for _, cid := range mm.ConsumerIds {
+			res.Consumers = append(res.Consumers, &user.User{
+				ID: int(cid),
+			})
+		}
+	}
+
+	return res, nil
 }
 
 func (ms *Meal) Equals(m *Meal) bool {

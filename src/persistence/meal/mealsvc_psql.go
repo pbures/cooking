@@ -22,7 +22,7 @@ func NewMealSvcPsql(usp user.UserSvc, db *sql.DB) *MealSvcPsql {
 }
 
 func (ms *MealSvcPsql) FindMeals(d time.Time, ctx context.Context) ([]*Meal, error) {
-	stmt := "select meals.*, a.first_name, users.* from meals " +
+	stmt := "select meals.*, a.first_name, a.last_name, a.email, users.* from meals " +
 		"left join consumers_meals ON meals.meal_id=consumers_meals.meal_id " +
 		"left join users ON user_id=consumers_meals.consumer_id " +
 		"left join (SELECT * from users) a ON a.user_id=meals.author_id " +
@@ -35,7 +35,7 @@ func (ms *MealSvcPsql) FindMeals(d time.Time, ctx context.Context) ([]*Meal, err
 
 	var mealId int
 	var authorIdNullable, consumerIdNullable sql.NullInt64
-	var mealName, authorFirstName, mtStr, consumerFirstname, consuerLastnamme, consumerEmail sql.NullString
+	var mealName, authorFirstName, authorLastName, authorEmail, mtStr, consumerFirstname, consuerLastnamme, consumerEmail sql.NullString
 	var mealDate time.Time
 
 	var prevMealId int = -1
@@ -44,7 +44,8 @@ func (ms *MealSvcPsql) FindMeals(d time.Time, ctx context.Context) ([]*Meal, err
 	var m *Meal
 
 	for rows.Next() {
-		rows.Scan(&mealId, &authorIdNullable, &mealName, &mtStr, &mealDate, &authorFirstName,
+		rows.Scan(&mealId, &authorIdNullable, &mealName, &mtStr, &mealDate,
+			&authorFirstName, &authorLastName, &authorEmail,
 			&consumerIdNullable, &consumerFirstname, &consuerLastnamme, &consumerEmail)
 
 		mt, err := StrToMealType(mtStr.String)
@@ -63,6 +64,8 @@ func (ms *MealSvcPsql) FindMeals(d time.Time, ctx context.Context) ([]*Meal, err
 				Author: &user.User{
 					ID:        int(authorIdNullable.Int64),
 					Firstname: authorFirstName.String,
+					Lastname:  authorLastName.String,
+					Email:     authorEmail.String,
 				},
 				Consumers: cons,
 				MealDate:  mealDate.UTC(),
