@@ -88,6 +88,9 @@ func TestUserFindAll(t *testing.T) {
 	application.UserSvc.Insert(u2, context.TODO())
 
 	foundUsers, err := application.UserSvc.FindAll(2)
-	assert.GreaterOrEqual(2, len(foundUsers))
+	if err != nil {
+		t.Log(err)
+	}
 	assert.Nil(err)
+	assert.GreaterOrEqual(2, len(foundUsers))
 }

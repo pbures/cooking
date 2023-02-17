@@ -2,9 +2,11 @@ package tests
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -63,7 +65,6 @@ func TestInsertSingleMeal(t *testing.T) {
 		strings.Count(recorder.Body.String(), "pavel.bures@gmail.com"),
 		"response must contain the email of the author of the meal",
 	)
-
 }
 
 func TestInsertManyMeals(t *testing.T) {
@@ -91,7 +92,6 @@ func TestInsertManyMeals(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		handler.ServeHTTP(rr, req)
 
-		//TODO: Need to setup some Author into users table.
 		if !assert.Equal(http.StatusCreated, rr.Result().StatusCode, "Status code") {
 			t.Fatal("status codes should be 201")
 		}
@@ -144,12 +144,80 @@ func TestInsertManyMeals(t *testing.T) {
 	}
 }
 
-func TestInsetAndFindRestApi(t *testing.T) {
-	// assert := assert.New(t)
+func TestInsetAndUpdate(t *testing.T) {
+	assert := assert.New(t)
 
-	server := server.SetupServer(&application)
+	server, handler, recorder := getServerHandlerRecorder(&application)
 	defer server.Shutdown()
 
-	// handler := server.GetHandler()
+	d := time.Date(2003, 1, 1, 0, 0, 0, 0, time.UTC)
 
+	getMealJson := func(authorId int, mealType string, mealName string, consumerIds []int) string {
+		cis := "["
+		comma := ""
+		for _, ci := range consumerIds {
+			cis = cis + comma + fmt.Sprint(ci)
+			comma = ","
+		}
+		cis = cis + "]"
+
+		return fmt.Sprintf(`{
+			"mealType":"%v",
+			"mealAuthorId":%v,
+			"mealDate":"%v",
+			"mealName":"%v",
+			"kcalories":280,
+			"consumerIds": %v
+		}`, mealType, authorId, d.Format("2006-01-02"), mealName, cis)
+	}
+	/* Create the meal of type dinner */
+	req, _ := http.NewRequest("PUT",
+		"/meals",
+		bytes.NewBuffer([]byte(getMealJson(1, "dinner", "testing-insert-and-update-1", []int{1, 2}))),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	handler.ServeHTTP(recorder, req)
+
+	/* Update to change the name and consumers */
+	req, _ = http.NewRequest("PUT",
+		"/meals",
+		bytes.NewBuffer([]byte(getMealJson(2, "dinner", "testing-insert-and-update-2", []int{2, 3, 4}))),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	handler.ServeHTTP(recorder, req)
+
+	/* Insert the same date, but different type - this creates a new meal */
+	req, _ = http.NewRequest("PUT",
+		"/meals",
+		bytes.NewBuffer([]byte(getMealJson(2, "breakfast", "testing-insert-and-update-3", []int{1}))),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	handler.ServeHTTP(recorder, req)
+
+	req, _ = http.NewRequest("GET", fmt.Sprintf("/meals?date=%v", d.Format("2006-01-02")), nil)
+	handler.ServeHTTP(recorder, req)
+
+	assert.Equal(
+		2,
+		strings.Count(recorder.Body.String(), "mealId"),
+	)
+	mids, err := parseMealIds(recorder.Body.String(), "mealId")
+	assert.Equal(1, len(mids), "exactly one mealId should be returned")
+	assert.Nil(err)
+
+	cids, err := parseMealIds(recorder.Body.String(), "consumerIds")
+	assert.Nil(err)
+	assert.Equal(1, len(cids), "exactly one consuerrIds array should be returned")
+	assert.Equal("[2,3,4],", cids[0])
+}
+
+func parseMealIds(body string, keystr string) ([]string, error) {
+	r, _ := regexp.Compile(fmt.Sprintf("\"%v\":([0-9\\[\\],]+)", keystr))
+
+	sm := r.FindStringSubmatch(body)
+	if len(sm) < 2 {
+		return nil, errors.New("could not parse Id from the meals json")
+	}
+
+	return sm[1:], nil
 }

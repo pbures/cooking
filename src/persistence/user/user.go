@@ -33,7 +33,8 @@ func NewUserSvcPsql(db *sql.DB) *UserSvcPsql {
 }
 
 func (usp *UserSvcPsql) FindByEmail(email string) ([]User, error) {
-	stmt := "SELECT * from users WHERE email = '" + email + "'"
+	stmt := "SELECT users.user_id, users.first_name, users.last_name, users.email" +
+		" from users WHERE email = '" + email + "'"
 
 	rows, err := usp.db.Query(stmt)
 	if err != nil {
@@ -59,7 +60,7 @@ func (usp *UserSvcPsql) FindByEmail(email string) ([]User, error) {
 
 func (usp *UserSvcPsql) FindAll(amount int) ([]User, error) {
 
-	stmt := "SELECT * from users LIMIT $1;"
+	stmt := "SELECT users.user_id, users.first_name, users.last_name, users.email from users LIMIT $1;"
 
 	rows, err := usp.db.Query(stmt, amount)
 	if err != nil {

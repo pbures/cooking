@@ -29,7 +29,7 @@ func NewMeal(mm *models.Meal) (*Meal, error) {
 	res := &Meal{
 		Id:        int(mm.MealID),
 		MealType:  mts,
-		Author:    &user.User{ID: int(mm.MealAuthorID)}, //TODO: Fixme! User needs to be transformed.
+		Author:    &user.User{ID: int(mm.MealAuthorID)},
 		MealDate:  time.Time(mm.MealDate),
 		Consumers: []*user.User{},
 		MealName:  mm.MealName,

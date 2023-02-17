@@ -11,6 +11,94 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestMealInsertAndUpdateWithConsumers(t *testing.T) {
+	assert := assert.New(t)
+
+	aus := make([]*user.User, 0)
+
+	for ai := 0; ai < 10; ai++ {
+		u := &user.User{
+			Firstname: "Testing",
+			Lastname:  "Author1",
+			Email:     fmt.Sprintf("Testing.MealInsert-%v@meals.com", ai),
+		}
+		err := application.UserSvc.Insert(u, context.TODO())
+		if err != nil {
+			t.Fatal(err)
+		}
+		aus = append(aus, u)
+	}
+
+	dateOfMeal := time.Date(2023, 8, 5, 0, 0, 0, 0, time.UTC)
+	m := &meal.Meal{
+		MealType:  meal.Lunch,
+		Author:    aus[0],
+		MealDate:  dateOfMeal,
+		Consumers: aus[0:6],
+		MealName:  "testing-meal-wc-insert",
+		KCalories: 1000,
+	}
+
+	err := application.MealSvc.Insert(m, context.TODO())
+	if err != nil {
+		t.Log(err)
+	}
+	assert.Nil(err)
+
+	newCons := aus[4:]
+	m.MealName = "testing-meal-wc-update"
+	m.Consumers = newCons
+
+	err = application.MealSvc.Insert(m, context.TODO())
+	if err != nil {
+		t.Log(err)
+	}
+	assert.Nil(err)
+
+	mms, err := application.MealSvc.FindMeals(m.MealDate, context.TODO())
+	if err != nil {
+		t.Log(err)
+	}
+	assert.Len(mms, 1, "exactl one meal was expected")
+	assert.Equal("testing-meal-wc-update", mms[0].MealName, "the meal name was not updated")
+
+	for i, c := range m.Consumers {
+		assert.Equal(newCons[i].Email, c.Email, "consumers should be the updated")
+	}
+}
+
+func TestMealInsertAndUpdateWithoutConsumers(t *testing.T) {
+	assert := assert.New(t)
+
+	dateOfMeal := time.Date(2023, 8, 5, 0, 0, 0, 0, time.UTC)
+	m := &meal.Meal{
+		Id:       0,
+		MealName: "testing-meal-insert",
+		MealType: meal.Lunch,
+		MealDate: dateOfMeal,
+	}
+	err := application.MealSvc.Insert(m, context.TODO())
+	if err != nil {
+		t.Log(err)
+	}
+	assert.Nil(err)
+
+	m.MealName = "testing-meal-update"
+
+	err = application.MealSvc.Insert(m, context.TODO())
+	if err != nil {
+		t.Log(err)
+	}
+	assert.Nil(err)
+
+	mms, err := application.MealSvc.FindMeals(m.MealDate, context.TODO())
+	if err != nil {
+		t.Log(err)
+	}
+	assert.Len(mms, 1, "exactl one meal was expected")
+	assert.Equal("testing-meal-update", mms[0].MealName, "the meal name was not updated")
+}
+
 func TestMealInsertWithMeptyAuthor(t *testing.T) {
 	assert := assert.New(t)
 

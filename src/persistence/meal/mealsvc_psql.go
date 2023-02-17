@@ -22,7 +22,8 @@ func NewMealSvcPsql(usp user.UserSvc, db *sql.DB) *MealSvcPsql {
 }
 
 func (ms *MealSvcPsql) FindMeals(d time.Time, ctx context.Context) ([]*Meal, error) {
-	stmt := "select meals.*, a.first_name, a.last_name, a.email, users.* from meals " +
+	stmt := "select meals.meal_id, meals.author_id, meals.meal_name, meals.meal_type, meals.meal_date, " +
+		"a.first_name, a.last_name, a.email, users.user_id, users.first_name, users.last_name, users.email from meals " +
 		"left join consumers_meals ON meals.meal_id=consumers_meals.meal_id " +
 		"left join users ON user_id=consumers_meals.consumer_id " +
 		"left join (SELECT * from users) a ON a.user_id=meals.author_id " +
@@ -44,9 +45,12 @@ func (ms *MealSvcPsql) FindMeals(d time.Time, ctx context.Context) ([]*Meal, err
 	var m *Meal
 
 	for rows.Next() {
-		rows.Scan(&mealId, &authorIdNullable, &mealName, &mtStr, &mealDate,
+		err := rows.Scan(&mealId, &authorIdNullable, &mealName, &mtStr, &mealDate,
 			&authorFirstName, &authorLastName, &authorEmail,
 			&consumerIdNullable, &consumerFirstname, &consuerLastnamme, &consumerEmail)
+		if err != nil {
+			return nil, err
+		}
 
 		mt, err := StrToMealType(mtStr.String)
 		if err != nil {
@@ -100,7 +104,10 @@ func (ms *MealSvcPsql) Insert(m *Meal, ctx context.Context) error {
 			ctx,
 			"INSERT INTO meals "+
 				"(author_id, meal_name, meal_type, meal_date)"+
-				" values ($1, $2, $3, $4) RETURNING meal_id",
+				" values ($1, $2, $3, $4)"+
+				" ON CONFLICT ON CONSTRAINT meals_meal_date_meal_type_key DO UPDATE SET "+
+				" author_id=$1, meal_name=$2, meal_type=$3"+
+				" RETURNING meal_id",
 			m.Author.ID,
 			m.MealName,
 			m.MealType.String(),
@@ -111,13 +118,22 @@ func (ms *MealSvcPsql) Insert(m *Meal, ctx context.Context) error {
 			ctx,
 			"INSERT INTO meals "+
 				"(meal_name, meal_type, meal_date)"+
-				" values ($1, $2, $3) RETURNING meal_id",
+				" values ($1, $2, $3)"+
+				" ON CONFLICT ON CONSTRAINT meals_meal_date_meal_type_key DO UPDATE SET "+
+				" meal_name=$1, meal_type=$2"+
+				" RETURNING meal_id",
 			m.MealName,
 			m.MealType.String(),
 			m.MealDate,
 		).Scan(&mid)
 	}
 
+	if err != nil {
+		return err
+	}
+
+	stmt := "DELETE from consumers_meals WHERE meal_id=$1"
+	_, err = tx.ExecContext(ctx, stmt, mid)
 	if err != nil {
 		return err
 	}
