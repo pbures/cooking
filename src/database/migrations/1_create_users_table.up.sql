@@ -30,6 +30,7 @@ CREATE TABLE meals (
     meal_name varchar(255),
     meal_type mealtype,
     meal_date date,
+    kcalories integer,
     created_at timestamp default current_timestamp,
     updated_at timestamp default current_timestamp,
     UNIQUE(meal_date, meal_type)

@@ -22,7 +22,7 @@ func NewMealSvcPsql(usp user.UserSvc, db *sql.DB) *MealSvcPsql {
 }
 
 func (ms *MealSvcPsql) FindMeals(d time.Time, ctx context.Context) ([]*Meal, error) {
-	stmt := "select meals.meal_id, meals.author_id, meals.meal_name, meals.meal_type, meals.meal_date, " +
+	stmt := "select meals.meal_id, meals.author_id, meals.meal_name, meals.meal_type, meals.meal_date, meals.kcalories, " +
 		"a.first_name, a.last_name, a.email, users.user_id, users.first_name, users.last_name, users.email from meals " +
 		"left join consumers_meals ON meals.meal_id=consumers_meals.meal_id " +
 		"left join users ON user_id=consumers_meals.consumer_id " +
@@ -35,7 +35,7 @@ func (ms *MealSvcPsql) FindMeals(d time.Time, ctx context.Context) ([]*Meal, err
 	}
 
 	var mealId int
-	var authorIdNullable, consumerIdNullable sql.NullInt64
+	var authorIdNullable, consumerIdNullable, mealKcalories sql.NullInt64
 	var mealName, authorFirstName, authorLastName, authorEmail, mtStr, consumerFirstname, consuerLastnamme, consumerEmail sql.NullString
 	var mealDate time.Time
 
@@ -45,7 +45,7 @@ func (ms *MealSvcPsql) FindMeals(d time.Time, ctx context.Context) ([]*Meal, err
 	var m *Meal
 
 	for rows.Next() {
-		err := rows.Scan(&mealId, &authorIdNullable, &mealName, &mtStr, &mealDate,
+		err := rows.Scan(&mealId, &authorIdNullable, &mealName, &mtStr, &mealDate, &mealKcalories,
 			&authorFirstName, &authorLastName, &authorEmail,
 			&consumerIdNullable, &consumerFirstname, &consuerLastnamme, &consumerEmail)
 		if err != nil {
@@ -73,6 +73,7 @@ func (ms *MealSvcPsql) FindMeals(d time.Time, ctx context.Context) ([]*Meal, err
 				},
 				Consumers: cons,
 				MealDate:  mealDate.UTC(),
+				KCalories: int(mealKcalories.Int64),
 			}
 			meals = append(meals, m)
 		}
@@ -103,28 +104,30 @@ func (ms *MealSvcPsql) Insert(m *Meal, ctx context.Context) error {
 		err = tx.QueryRowContext(
 			ctx,
 			"INSERT INTO meals "+
-				"(author_id, meal_name, meal_type, meal_date)"+
-				" values ($1, $2, $3, $4)"+
+				"(author_id, meal_name, meal_type, meal_date, kcalories)"+
+				" values ($1, $2, $3, $4, $5)"+
 				" ON CONFLICT ON CONSTRAINT meals_meal_date_meal_type_key DO UPDATE SET "+
-				" author_id=$1, meal_name=$2, meal_type=$3"+
+				" author_id=$1, meal_name=$2, meal_type=$3, kcalories=$5"+
 				" RETURNING meal_id",
 			m.Author.ID,
 			m.MealName,
 			m.MealType.String(),
 			m.MealDate,
+			m.KCalories,
 		).Scan(&mid)
 	} else {
 		err = tx.QueryRowContext(
 			ctx,
 			"INSERT INTO meals "+
-				"(meal_name, meal_type, meal_date)"+
-				" values ($1, $2, $3)"+
+				"(meal_name, meal_type, meal_date, kcalories)"+
+				" values ($1, $2, $3, $4)"+
 				" ON CONFLICT ON CONSTRAINT meals_meal_date_meal_type_key DO UPDATE SET "+
-				" meal_name=$1, meal_type=$2"+
+				" meal_name=$1, meal_type=$2, kcalories=$4"+
 				" RETURNING meal_id",
 			m.MealName,
 			m.MealType.String(),
 			m.MealDate,
+			m.KCalories,
 		).Scan(&mid)
 	}
 

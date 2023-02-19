@@ -65,6 +65,10 @@ func TestInsertSingleMeal(t *testing.T) {
 		strings.Count(recorder.Body.String(), "pavel.bures@gmail.com"),
 		"response must contain the email of the author of the meal",
 	)
+	kcaloriesStr, err := parseMealIds(recorder.Body.String(), "kcalories")
+	assert.Nil(err)
+	assert.Len(kcaloriesStr, 1)
+	assert.Equal("280,", kcaloriesStr[0])
 }
 
 func TestInsertManyMeals(t *testing.T) {

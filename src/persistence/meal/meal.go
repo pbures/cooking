@@ -19,7 +19,7 @@ type Meal struct {
 	KCalories int
 }
 
-func NewMeal(mm *models.Meal) (*Meal, error) {
+func NewMealFromApi(mm *models.Meal) (*Meal, error) {
 
 	mts, err := StrToMealType(mm.MealType)
 	if err != nil {

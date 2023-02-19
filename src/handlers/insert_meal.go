@@ -16,7 +16,7 @@ func NewInsertOneHandler(a app.App) func(params meals.InsertOneParams) middlewar
 	return func(params meals.InsertOneParams) middleware.Responder {
 
 		mr := params.Body
-		m, err := meal.NewMeal(mr)
+		m, err := meal.NewMealFromApi(mr)
 		if err != nil {
 			errMsg := "Unable to parse payload"
 
