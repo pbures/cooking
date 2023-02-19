@@ -2,6 +2,7 @@ package tests
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 
 	"cooking.buresovi.net/src/app"
 	"cooking.buresovi.net/src/gen-server/restapi"
+	"cooking.buresovi.net/src/gen-server/restapi/operations/meals"
 	"cooking.buresovi.net/src/server"
 	"github.com/stretchr/testify/assert"
 )
@@ -53,22 +55,22 @@ func TestInsertSingleMeal(t *testing.T) {
 	req, _ = http.NewRequest("GET", fmt.Sprintf("/meals?date=%v", d.Format("2006-01-02")), nil)
 	handler.ServeHTTP(recorder, req)
 
-	assert.Equal(1,
-		strings.Count(recorder.Body.String(), "testing-singleinsert"),
-		"body of the response needs to contain exactly one element",
-	)
-	assert.Equal(4,
-		strings.Count(recorder.Body.String(), "\"userId\""),
-		"response needs to contain exactly three users",
-	)
-	assert.Equal(1,
-		strings.Count(recorder.Body.String(), "pavel.bures@gmail.com"),
-		"response must contain the email of the author of the meal",
-	)
-	kcaloriesStr, err := parseMealIds(recorder.Body.String(), "kcalories")
+	result := meals.GetMealsOKBody{}
+	err := json.Unmarshal(recorder.Body.Bytes(), &result)
 	assert.Nil(err)
-	assert.Len(kcaloriesStr, 1)
-	assert.Equal("280,", kcaloriesStr[0])
+
+	assert.Equal(1, len(result.Meals))
+	assert.Equal(4, len(result.Users))
+
+	assert.Equal(result.Meals[0].MealName, "testing-singleinsert")
+	assert.Equal(1, int(result.Meals[0].MealAuthorID))
+	assert.Equal(int64(280), result.Meals[0].Kcalories)
+
+	for _, u := range result.Users {
+		if u.UserID == result.Meals[0].MealAuthorID {
+			assert.Equal("pavel.bures@gmail.com", string(u.Email))
+		}
+	}
 }
 
 func TestInsertManyMeals(t *testing.T) {
@@ -114,13 +116,13 @@ func TestInsertManyMeals(t *testing.T) {
 			4,
 		},
 		{
-			"11 meal and four users expected",
-			"/meals?date=2023-01-01&daysforward=10",
+			"date and daysforward",
+			"/meals?date=2023-01-01&daysforward=1",
 			11,
 			4,
 		},
 		{
-			"10 meals and four users expected",
+			"date, daysforward and limit",
 			"/meals?date=2023-01-01&daysforward=150&limit=10",
 			10,
 			4,
@@ -134,16 +136,14 @@ func TestInsertManyMeals(t *testing.T) {
 			defer server.Shutdown()
 
 			req, _ := http.NewRequest("GET", tt.requestString, nil)
-
 			handler.ServeHTTP(rr, req)
-			assert.Equal(tt.numMeals,
-				strings.Count(rr.Body.String(), "testing-gulasovka"),
-				fmt.Sprintf("response needs to contain exactly %v element", tt.numMeals),
-			)
-			assert.Equal(tt.numUsers,
-				strings.Count(rr.Body.String(), "\"userId\""),
-				fmt.Sprintf("response needs to contain exactly %v users", tt.numUsers),
-			)
+
+			result := meals.GetMealsOKBody{}
+			err := json.Unmarshal(rr.Body.Bytes(), &result)
+			assert.Nil(err)
+
+			assert.Equal(tt.numMeals, len(result.Meals))
+			assert.Equal(tt.numUsers, len(result.Users))
 		})
 	}
 }
