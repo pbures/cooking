@@ -118,7 +118,7 @@ func TestInsertManyMeals(t *testing.T) {
 		{
 			"date and daysforward",
 			"/meals?date=2023-01-01&daysforward=1",
-			11,
+			2,
 			4,
 		},
 		{
