@@ -19,6 +19,11 @@ clean:
 build: generate
 	go build src/main.go
 
+test: build
+	go test -v \
+	 cooking.buresovi.net/src/tests/persistence \
+	 cooking.buresovi.net/src/tests/api
+
 run-server: generate build run-postgres
 	./main
 
